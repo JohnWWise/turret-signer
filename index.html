@@ -3,52 +3,233 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Turret Extension — One-Shot Authorize</title>
+<title>Turret Cockpit — Cascade</title>
 <style>
-	body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; line-height: 1.45; color: #1c1a17; background: #faf8f5; }
-	h1 { font-size: 1.35rem; }
-	code { background: #eee9e2; padding: 0.1em 0.35em; border-radius: 4px; word-break: break-all; }
-	button { font-size: 1rem; padding: 0.6rem 1.1rem; margin: 0.4rem 0.4rem 0.4rem 0; border-radius: 6px; border: 1px solid #8a8175; cursor: pointer; }
-	button:disabled { opacity: 0.45; cursor: not-allowed; }
-	#authorize { background: #b3401e; color: #fff; border-color: #b3401e; font-weight: 600; }
-	pre { background: #141210; color: #d8f3dc; padding: 0.8rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.8rem; }
-	.box { border: 1px solid #d8d0c4; border-radius: 8px; padding: 1rem; margin: 1rem 0; background: #fff; }
-	.warn { border-color: #b3401e; }
-	#log { max-height: 16rem; overflow-y: auto; }
+	:root {
+		--bg: #0a0908;
+		--panel: #171310;
+		--panel2: #100d0a;
+		--line: #3a2317;
+		--line-dim: #2a1c12;
+		--rust: #c1441f;
+		--hot: #e8762d;
+		--amber: #d9a441;
+		--green: #7dc24a;
+		--red: #d43a2a;
+		--ink: #ddd2c1;
+		--dim: #978a76;
+		--faint: #6b6051;
+		--mono: "Cascadia Mono", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+		--cond: "Arial Narrow", "Liberation Sans Narrow", "Segoe UI", system-ui, sans-serif;
+	}
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: var(--cond);
+		color: var(--ink);
+		background:
+			radial-gradient(rgba(232, 118, 45, 0.055) 1px, transparent 1.35px) 0 0 / 6px 6px,
+			radial-gradient(rgba(232, 118, 45, 0.035) 1px, transparent 1.35px) 3px 3px / 6px 6px,
+			linear-gradient(180deg, #0d0b09 0%, var(--bg) 240px);
+		line-height: 1.45;
+		padding: 1.1rem 1.1rem 2.2rem;
+	}
+	.wrap { max-width: 76rem; margin: 0 auto; }
+	h1, h2, h3 { text-transform: uppercase; letter-spacing: 0.14em; margin: 0; font-weight: 700; }
+	h1 { font-size: 1.5rem; color: #f0e6d6; }
+	h1 .accent { color: var(--hot); }
+	h2 { font-size: 0.98rem; color: var(--hot); }
+	h3 { font-size: 0.82rem; color: var(--dim); letter-spacing: 0.18em; }
+	p { margin: 0.45rem 0; }
+	code { font-family: var(--mono); font-size: 0.78em; background: #241a12; padding: 0.08em 0.34em; border: 1px solid var(--line-dim); word-break: break-all; color: #e8c9a8; }
+	button {
+		font-family: var(--cond); text-transform: uppercase; letter-spacing: 0.12em;
+		font-size: 0.92rem; font-weight: 700; padding: 0.55rem 1.05rem;
+		background: #221812; color: var(--ink); border: 1px solid var(--line);
+		border-top: 2px solid var(--rust); cursor: pointer;
+	}
+	button:hover:not(:disabled) { background: #2e1d12; border-top-color: var(--hot); }
+	button:disabled { opacity: 0.38; cursor: not-allowed; }
+	button.primary { background: var(--rust); border-color: #7e2a10; border-top-color: var(--hot); color: #fff4e8; }
+	button.primary:hover:not(:disabled) { background: #d14e22; }
+	button.ghost { border-top-color: var(--line); }
+	pre {
+		font-family: var(--mono); background: #0c0a08; color: #b8e0a0;
+		border: 1px solid var(--line-dim); padding: 0.7rem 0.8rem;
+		overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.74rem; margin: 0.5rem 0 0;
+	}
+	.panel {
+		background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+		border: 1px solid var(--line); border-top: 3px solid var(--rust);
+		padding: 0.95rem 1.05rem 1.05rem; margin: 0 0 1rem;
+	}
+	.panel.plain { border-top-color: var(--line); }
+	.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1.2rem; margin-bottom: 0.35rem; }
+	.head .sub { color: var(--dim); font-size: 0.88rem; letter-spacing: 0.06em; text-transform: uppercase; }
+	.masthead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 0.6rem 1.5rem; margin-bottom: 1rem; border-bottom: 2px solid var(--rust); padding-bottom: 0.7rem; }
+	.masthead .meta { font-family: var(--mono); font-size: 0.72rem; color: var(--dim); text-align: right; line-height: 1.7; }
+	.masthead .meta b { color: var(--ink); font-weight: 600; }
+	.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.7rem; margin-top: 0.6rem; }
+	.rule { border: 1px solid var(--line-dim); background: rgba(0,0,0,0.28); padding: 0.6rem 0.75rem; }
+	.rule .tag { font-family: var(--cond); font-weight: 700; letter-spacing: 0.16em; font-size: 0.78rem; text-transform: uppercase; }
+	.rule p { font-size: 0.94rem; color: var(--ink); margin: 0.3rem 0 0; }
+	.tag.never { color: var(--green); }
+	.tag.npc { color: var(--amber); }
+	.tag.hostile { color: var(--red); }
+	.tag.sys { color: var(--hot); }
+	.fleet { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.8rem; margin-top: 0.6rem; }
+	.card { border: 1px solid var(--line); background: linear-gradient(180deg, #1a1510, #100d0a); padding: 0.75rem 0.85rem 0.85rem; }
+	.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+	.card .item { font-family: var(--mono); font-size: 1.02rem; color: #f0e6d6; }
+	.card .cls { color: var(--hot); font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; }
+	.pilotflag { color: var(--bg); background: var(--amber); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; padding: 0.05rem 0.4rem; text-transform: uppercase; }
+	.rows { font-family: var(--mono); font-size: 0.76rem; margin: 0.55rem 0 0.2rem; border-top: 1px dashed var(--line-dim); }
+	.rows .r { display: flex; justify-content: space-between; gap: 0.8rem; padding: 0.28rem 0; border-bottom: 1px dashed var(--line-dim); }
+	.rows .k { color: var(--faint); text-transform: uppercase; letter-spacing: 0.1em; }
+	.rows .v { color: var(--ink); text-align: right; word-break: break-all; }
+	.lamp { display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%; margin-right: 0.4em; vertical-align: baseline; }
+	.lamp.on { background: var(--green); box-shadow: 0 0 6px rgba(125,194,74,0.8); }
+	.lamp.off { background: #6d6252; }
+	.lamp.gone { background: var(--red); box-shadow: 0 0 6px rgba(212,58,42,0.7); }
+	.chip { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; padding: 0.08rem 0.45rem; text-transform: uppercase; border: 1px solid var(--line); }
+	.chip.ours { color: #ffd9a8; border-color: var(--rust); background: rgba(193,68,31,0.22); }
+	.chip.default { color: var(--dim); }
+	.chip.other { color: #ffb3a3; border-color: var(--red); background: rgba(212,58,42,0.15); }
+	.chip.unknown { color: var(--faint); }
+	.card .btns { display: flex; gap: 0.5rem; margin-top: 0.65rem; }
+	.card .btns button { flex: 1; padding: 0.45rem 0.4rem; font-size: 0.84rem; }
+	.ammo { color: var(--amber); }
+	.tally { display: flex; flex-wrap: wrap; gap: 1.2rem 2.6rem; align-items: flex-start; margin-top: 0.4rem; }
+	.bignum { font-family: var(--mono); font-size: 3.2rem; line-height: 1; color: var(--hot); }
+	.biglab { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.76rem; color: var(--dim); margin-top: 0.3rem; }
+	table { border-collapse: collapse; font-family: var(--mono); font-size: 0.78rem; }
+	th, td { border: 1px solid var(--line-dim); padding: 0.32rem 0.6rem; text-align: left; }
+	th { color: var(--hot); text-transform: uppercase; letter-spacing: 0.1em; font-family: var(--cond); font-size: 0.74rem; }
+	tr.home td { background: rgba(193,68,31,0.13); color: #ffd9a8; }
+	.foot { color: var(--dim); font-size: 0.88rem; }
+	.foot b { color: var(--ink); }
+	.warnbox { border: 1px solid var(--amber); background: rgba(217,164,65,0.07); padding: 0.7rem 0.9rem; margin-top: 0.6rem; }
+	.warnbox .tag { color: var(--amber); font-weight: 700; letter-spacing: 0.16em; font-size: 0.78rem; text-transform: uppercase; }
+	#actionPanel { display: none; }
+	#actionPanel.open { display: block; }
+	#status { font-size: 1.02rem; }
+	.small { font-size: 0.86rem; color: var(--dim); }
+	.progress { font-family: var(--mono); font-size: 0.74rem; color: var(--dim); }
+	.bar { height: 6px; background: #241a12; border: 1px solid var(--line-dim); margin-top: 0.35rem; }
+	.bar > div { height: 100%; background: var(--rust); width: 0%; transition: width 0.25s; }
+	#log { max-height: 15rem; overflow-y: auto; }
+	.kv { font-family: var(--mono); font-size: 0.76rem; color: var(--dim); }
+	.kv b { color: var(--ink); font-weight: 600; }
 </style>
 </head>
 <body>
-<h1>Authorize the turret extension — pilot turret only</h1>
+<div class="wrap">
 
-<div class="box">
-<p><strong>What this page asks your wallet to sign — exactly one transaction, three steps:</strong></p>
-<ol>
-<li><strong>Borrow</strong> the OwnerCap for your pilot mini turret (item <code>1000002127735</code>, object <code>0x9c3fe437…e4287</code>) out of your character object.</li>
-<li><strong>Authorize</strong> Wilson's turret extension package <code>0x3a00e2a3…5ac94</code> (type <code>…::turret::TurretAuth</code>) on that one turret. This is the fire-on-entry extension you reviewed: it never targets you, never targets AWAR or WOLF, and engages everyone else who enters range.</li>
-<li><strong>Return</strong> the OwnerCap to your character.</li>
-</ol>
-<p>Nothing else is in the transaction. It does not move any SUI or items, does not touch any other turret, and does <strong>not</strong> freeze the configuration — it can be revoked later, which restores the default behavior. Gas is paid from the wallet's own SUI (about 0.97 SUI on hand; the cost is a small fraction of that).</p>
-<p>This page only works with your character wallet:<br /><code>0xedb3b72515a3d9df369a6cefe635bc2b6902b6fdcbfb106fa9c5df87b8f147a6</code><br />If any other account connects, the Authorize button stays disabled.</p>
+	<div class="masthead">
+		<div>
+			<h1>Turret <span class="accent">Cockpit</span></h1>
+			<div class="sub" style="color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; font-size:0.85rem;">Cascade &mdash; UO3|T11 reef defense &mdash; Cycle 7</div>
+		</div>
+		<div class="meta">
+			EXTENSION PACKAGE<br /><b id="pkgLine">0x3a00e2a3&hellip;5ac94</b><br />
+			AUTH TYPE <b>::turret::TurretAuth</b> &middot; WORLD <b>Stillness (Sui testnet)</b>
+		</div>
+	</div>
+
+	<div class="panel">
+		<div class="head"><h2>Rules of engagement</h2><span class="sub">what the extension does — on every call, no exceptions</span></div>
+		<p>An authorized turret runs <b>only</b> these rules — the extension replaces default targeting entirely. Exclusion is by <b>omission</b>: a protected ship never appears on the target list at all.</p>
+		<div class="rules">
+			<div class="rule">
+				<div class="tag never">Never targeted — you</div>
+				<p>The owner is read live from your character object on every call and is never returned as a target.</p>
+			</div>
+			<div class="rule">
+				<div class="tag never">Never targeted — AWAR 98000668</div>
+				<p>Your tribe, read live from your character on every call. Absolute — even if a tribemate opens fire.</p>
+			</div>
+			<div class="rule">
+				<div class="tag never">Never targeted — WOLF 98000657</div>
+				<p>The sister tribe, fixed in the extension package. Absolute — even as aggressors.</p>
+			</div>
+			<div class="rule">
+				<div class="tag npc">NPCs — base weight</div>
+				<p>Ferals and other NPCs are engaged at the game-supplied base weight, exactly as the default rules treat them.</p>
+			</div>
+			<div class="rule">
+				<div class="tag hostile">Everyone else — on presence</div>
+				<p>Any other player who enters range is targeted: base weight <b>+1,000</b> on entry, <b>+10,000</b> if they start attacking.</p>
+			</div>
+			<div class="rule">
+				<div class="tag sys">Fail-safe — hold fire</div>
+				<p>The extension is abort-proof by construction: malformed input returns an empty list — the turret holds fire rather than shooting wrong.</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel">
+		<div class="head"><h2>Wallet</h2><span class="sub">signing is the only thing the wallet does here</span></div>
+		<p>
+			<button id="connect">Connect EVE Vault</button>
+			<span class="kv">ACCOUNT <b id="account">(none)</b></span>
+		</p>
+		<p id="status">Loading…</p>
+		<p class="small">This page signs only with your character wallet <code>0xedb3b72515a3d9df369a6cefe635bc2b6902b6fdcbfb106fa9c5df87b8f147a6</code>. Any other account can look, but every sign button stays disabled. This page will <b>never</b> offer <code>freeze_extension_config</code> — freezing is permanent, and it stays off the table.</p>
+	</div>
+
+	<div class="panel" id="actionPanel">
+		<div class="head"><h2 id="actionTitle">Confirm transaction</h2><span class="sub">read it, then sign</span></div>
+		<div id="actionSummary"></div>
+		<p>
+			<button id="signAction" class="primary">Sign</button>
+			<button id="cancelAction" class="ghost">Cancel</button>
+		</p>
+		<pre id="result"></pre>
+	</div>
+
+	<div class="panel">
+		<div class="head"><h2>Fleet</h2><span class="sub" id="fleetSub">seven turrets on the reef node — read live from chain</span></div>
+		<div class="fleet" id="fleet"></div>
+		<div class="warnbox">
+			<div class="tag">Ammo — why no card shows a count</div>
+			<p style="margin:0.3rem 0 0;">Loaded rounds are <b>not on-chain</b>. A turret's chain object carries exactly nine fields — id, key, owner cap, type, status, location, energy source, metadata, extension — and zero dynamic fields; the rounds themselves live only in CCP's game server. No dApp can read them, including this one. Judge ammo by the in-game panel and by burn, exactly as before. (Verified against the live pilot object and the world contract's <code>Turret</code> struct.)</p>
+		</div>
+		<p class="small" style="margin-top:0.6rem;">Status, extension and energy are re-read from the chain every time this panel loads or refreshes — <button id="refreshFleet" class="ghost" style="padding:0.2rem 0.6rem; font-size:0.8rem;">Refresh fleet</button> — nothing below is cached or assumed.</p>
+	</div>
+
+	<div class="panel">
+		<div class="head"><h2>Kill tally</h2><span class="sub">reported kills only — read from the killmail census</span></div>
+		<div class="tally">
+			<div>
+				<div class="bignum" id="tallyTotal">—</div>
+				<div class="biglab">Reported kills — Cascade</div>
+				<div class="kv" style="margin-top:0.5rem;">REPORTED LOSSES <b id="tallyLosses">—</b></div>
+			</div>
+			<div>
+				<table id="tallyTable">
+					<thead><tr><th>System</th><th>Reported kills</th><th>Ship</th><th>Structure</th></tr></thead>
+					<tbody><tr><td colspan="4">Scanning the census…</td></tr></tbody>
+				</table>
+				<div class="progress" id="tallyProgress"></div>
+				<div class="bar"><div id="tallyBar"></div></div>
+			</div>
+		</div>
+		<p class="foot" style="margin-top:0.7rem;"><b>Read this before you trust the number:</b> a killmail exists only when someone reports a kill to the chain from the in-game killmail UI — unreported kills are invisible, so this tally is a <b>floor, not a census</b>. Killmails credit the <b>character</b>, never a weapon: the on-chain <code>Killmail</code> record has no turret field, so kills cannot be attributed per turret. The reef row counts every reported Cascade kill inside UO3|T11, turret or personal. Feral/NPC kills never generate killmails at all — there is no player victim to report them.</p>
+		<p><button id="rescanTally" class="ghost" style="padding:0.3rem 0.7rem; font-size:0.82rem;">Rescan from zero</button> <span class="progress" id="tallyAsOf"></span></p>
+	</div>
+
+	<div class="panel plain">
+		<div class="head"><h2>Session log</h2><span class="sub">every click, wallet call, chain read and error — verbatim</span></div>
+		<p class="small">This log is the trust feature: nothing this page does is hidden from it. If anything looks wrong, screenshot the whole log for Wilson.</p>
+		<pre id="log"></pre>
+	</div>
+
+	<div class="panel plain">
+		<div class="head"><h2>Diagnostics</h2><span class="sub">if the wallet is not found, tell Wilson exactly what this says</span></div>
+		<pre id="diag"></pre>
+	</div>
+
 </div>
-
-<p>
-<button id="connect" disabled>Connect EVE Vault</button>
-<button id="authorize" disabled>Authorize pilot turret</button>
-</p>
-<p>Connected account: <code id="account">(none)</code></p>
-<p id="status">Loading…</p>
-<pre id="result"></pre>
-
-<div class="box">
-<p><strong>Session log</strong> — every click, wallet call, wallet event, and error is recorded here with a timestamp, errors copied verbatim. If Connect still appears to do nothing, screenshot this whole log for Wilson:</p>
-<pre id="log"></pre>
-</div>
-
-<div class="box warn">
-<p><strong>Diagnostics</strong> (if the wallet is not found, tell Wilson exactly what this says):</p>
-<pre id="diag"></pre>
-</div>
-
 <script>(() => {
   // node_modules/@mysten/sui/dist/utils/suins.mjs
   var SUI_NS_NAME_REGEX = /^(?!.*(^(?!@)|[-.@])($|[-.@]))(?:[a-z0-9-]{0,63}(?:\.[a-z0-9-]{0,63})*)?@[a-z0-9-]{0,63}$/i;
@@ -6434,11 +6615,65 @@
   var EXT_PACKAGE = "0x3a00e2a378579881914490500efa82320666b77e02e4a3ae8ce1171f1b15ac94";
   var AUTH_TYPE = `${EXT_PACKAGE}::turret::TurretAuth`;
   var CHARACTER_OBJECT = "0x3bce86c47ea5f05e8a3ca766519b9b9e988aa38189e65ba8190b434d26a3b4e8";
-  var TURRET_OBJECT = "0x9c3fe437fb5788d7f25a5f13ca3b5c999a413bb703ed49df313566ecda6e4287";
-  var TURRET_ITEM_ID = "1000002127735";
-  var OWNER_CAP_OBJECT = "0xfac28c8612452191a62c16a675b1292eaa58551649dd9597ee6763eaeb5fbbe8";
+  var CHARACTER_ID = 2112113516;
   var EXPECTED_SIGNER = "0xedb3b72515a3d9df369a6cefe635bc2b6902b6fdcbfb106fa9c5df87b8f147a6";
   var CHAIN = "sui:testnet";
+  var GRAPHQL_URL = "https://graphql.testnet.sui.io/graphql";
+  var KILLMAIL_TYPE = `${WORLD_PACKAGE}::killmail::Killmail`;
+  var KILLMAIL_EVENT_TYPE = `${WORLD_PACKAGE}::killmail::KillmailCreatedEvent`;
+  var HOME_SYSTEM_ID = 30019785;
+  var HOME_SYSTEM_NAME = "UO3|T11";
+  var FLEET = [
+    {
+      itemId: "1000002127735",
+      typeId: 92279,
+      objectId: "0x9c3fe437fb5788d7f25a5f13ca3b5c999a413bb703ed49df313566ecda6e4287",
+      ownerCapId: "0xfac28c8612452191a62c16a675b1292eaa58551649dd9597ee6763eaeb5fbbe8",
+      pilot: true
+    },
+    {
+      itemId: "1000002126982",
+      typeId: 92279,
+      objectId: "0x367bdfc4e3f422afa23a648bd0def25122d7d25f9aaaed1f4bdfb2d33a7b5928",
+      ownerCapId: "0x12dbf38beb441c6a002eb059d7667f39c3df09ba5f2969f6a10ec4d78fa88e49"
+    },
+    {
+      itemId: "1000002133953",
+      typeId: 92279,
+      objectId: "0xe18b3c1235c3a62adade52bdc361c443eb7b9977e98eb248434ceedcb05d37c7",
+      ownerCapId: "0x1314e9ee01401e160c97f33a1b3227cc04ca285465faf76001aad64217d6949b"
+    },
+    {
+      itemId: "1000001821042",
+      typeId: 92279,
+      objectId: "0x6c14c912ee3fe49be90d91076781adaac3c365e052796071158d97e458fe71da",
+      ownerCapId: "0x31f7207b599a15fe09de3bc98c38df2434dc9c8e06a876a5062c27ba4a5e5f81"
+    },
+    {
+      itemId: "1000002134932",
+      typeId: 92279,
+      objectId: "0x5f0911e4cb5cada785dac7cd39f4e653c8d60cc24bc1115b35893b4bdd64dbe9",
+      ownerCapId: "0x5614e1684639e605950b8ded435497f94acd3ba19fc8f28ffe0ed145bdd01597"
+    },
+    {
+      itemId: "1000002460449",
+      typeId: 92401,
+      objectId: "0xffbcb6f18876fad4d1912f0cffe6fc652bab20a3b4888378c9cc149ae5294242",
+      ownerCapId: "0x6618fae6a915e89a85e160baff1dc4ef147e1699003f6d278b5d1c4efa87c6aa"
+    },
+    {
+      itemId: "1000002460829",
+      typeId: 92401,
+      objectId: "0x3a791de263ab18362cb438653d2f5b3b26aa2c06156d3e0d8415ebfffe7a4cce",
+      ownerCapId: "0xa3acf939541f914ef091e592fa524f300a7de261e40ccf41a571a3947bf559d3"
+    }
+  ];
+  var PILOT = FLEET[0];
+  function typeLabel(typeId) {
+    if (typeId === 92279) return "MINI TURRET";
+    if (typeId === 92401) return "TURRET";
+    return `TYPE ${typeId}`;
+  }
   function objectArg(tx, objectId, ref) {
     if (!ref) return tx.object(objectId);
     if (ref.kind === "shared") {
@@ -6450,27 +6685,44 @@
     }
     return tx.objectRef({ objectId, version: ref.version, digest: ref.digest });
   }
-  function buildAuthorizeTransaction(sender, refs = null) {
-    const tx = new Transaction();
-    if (sender) tx.setSender(sender);
+  function borrowAndReturn(tx, target, refs, middle) {
     const turretType = `${WORLD_PACKAGE}::turret::Turret`;
     const characterArg = () => objectArg(tx, CHARACTER_OBJECT, refs?.character);
-    const capArg = objectArg(tx, OWNER_CAP_OBJECT, refs?.ownerCap);
-    const turretArg = objectArg(tx, TURRET_OBJECT, refs?.turret);
+    const capArg = objectArg(tx, target.ownerCapId, refs?.ownerCap);
+    const turretArg = objectArg(tx, target.objectId, refs?.turret);
     const [ownerCap, receipt] = tx.moveCall({
       target: `${WORLD_PACKAGE}::character::borrow_owner_cap`,
       typeArguments: [turretType],
       arguments: [characterArg(), capArg]
     });
-    tx.moveCall({
-      target: `${WORLD_PACKAGE}::turret::authorize_extension`,
-      typeArguments: [AUTH_TYPE],
-      arguments: [turretArg, ownerCap]
-    });
+    middle(tx, turretArg, ownerCap);
     tx.moveCall({
       target: `${WORLD_PACKAGE}::character::return_owner_cap`,
       typeArguments: [turretType],
       arguments: [characterArg(), ownerCap, receipt]
+    });
+  }
+  function buildAuthorizeTransaction(sender, target, refs = null) {
+    const tx = new Transaction();
+    if (sender) tx.setSender(sender);
+    borrowAndReturn(tx, target, refs, (tx2, turretArg, ownerCap) => {
+      tx2.moveCall({
+        target: `${WORLD_PACKAGE}::turret::authorize_extension`,
+        typeArguments: [AUTH_TYPE],
+        arguments: [turretArg, ownerCap]
+      });
+    });
+    return tx;
+  }
+  function buildRevokeTransaction(sender, target, refs = null) {
+    const tx = new Transaction();
+    if (sender) tx.setSender(sender);
+    borrowAndReturn(tx, target, refs, (tx2, turretArg, ownerCap) => {
+      tx2.moveCall({
+        target: `${WORLD_PACKAGE}::turret::revoke_extension_authorization`,
+        typeArguments: [],
+        arguments: [turretArg, ownerCap]
+      });
     });
     return tx;
   }
@@ -6481,12 +6733,21 @@
   var diagEl = $("diag");
   var logEl = $("log");
   var connectBtn = $("connect");
-  var authBtn = $("authorize");
   var accountEl = $("account");
+  var fleetEl = $("fleet");
+  var fleetSubEl = $("fleetSub");
+  var actionPanel = $("actionPanel");
+  var actionTitle = $("actionTitle");
+  var actionSummary = $("actionSummary");
+  var signBtn = $("signAction");
+  var cancelBtn = $("cancelAction");
   var resultEl = $("result");
   var wallet = null;
   var account = null;
   var connectPending = false;
+  var signPending = false;
+  var pendingAction = null;
+  var fleet = [];
   function stamp() {
     const d = /* @__PURE__ */ new Date();
     const p = (n, l = 2) => String(n).padStart(l, "0");
@@ -6506,6 +6767,360 @@
   }
   function setStatus(msg) {
     statusEl.textContent = msg;
+  }
+  var short = (id) => id ? `${id.slice(0, 10)}\u2026${id.slice(-4)}` : "\u2014";
+  var esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  async function gql(query, variables) {
+    const res = await fetch(GRAPHQL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables })
+    });
+    if (!res.ok) throw new Error(`GraphQL HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.errors) throw new Error(`GraphQL: ${JSON.stringify(data.errors).slice(0, 300)}`);
+    return data.data;
+  }
+  var CAPS_Q = `
+query($a: SuiAddress!, $n: Int!, $c: String) {
+  address(address: $a) {
+    objects(first: $n, after: $c) {
+      pageInfo { hasNextPage endCursor }
+      nodes { address contents { type { repr } json } }
+    }
+  }
+}`;
+  var TURRET_Q = `
+query($a: SuiAddress!) {
+  object(address: $a) {
+    address version
+    asMoveObject { contents { type { repr } json } }
+    dynamicFields(first: 50) { pageInfo { hasNextPage } nodes { name { json } } }
+  }
+}`;
+  function turretStatus(j) {
+    return j?.status?.status?.["@variant"] ?? "UNKNOWN";
+  }
+  function isOurs(ext) {
+    return typeof ext === "string" && ext.replace(/^0x/, "") === AUTH_TYPE.replace(/^0x/, "");
+  }
+  function optionId(v) {
+    if (v == null) return null;
+    if (typeof v === "string") return v;
+    if (Array.isArray(v)) return v[0] ?? null;
+    if (typeof v === "object" && "vec" in v) return v.vec?.[0] ?? null;
+    return null;
+  }
+  async function loadFleet() {
+    log("Reading the fleet from chain (character OwnerCaps + turret objects)\u2026");
+    const records = /* @__PURE__ */ new Map();
+    for (const s of FLEET) {
+      records.set(s.objectId, {
+        itemId: s.itemId,
+        typeId: s.typeId,
+        objectId: s.objectId,
+        ownerCapId: s.ownerCapId,
+        pilot: !!s.pilot,
+        live: null,
+        // null = not yet read, true = found, false = read failed/gone
+        gone: false,
+        status: null,
+        extension: void 0,
+        energySourceId: null,
+        dynFields: null
+      });
+    }
+    try {
+      const capByObject = /* @__PURE__ */ new Map();
+      let cursor = null;
+      for (; ; ) {
+        const data = await gql(CAPS_Q, { a: CHARACTER_OBJECT, n: 50, c: cursor });
+        const page = data.address.objects;
+        for (const node of page.nodes) {
+          const repr = node.contents?.type?.repr ?? "";
+          if (repr.includes("::access::OwnerCap<") && repr.includes("::turret::Turret>")) {
+            const target = node.contents?.json?.authorized_object_id;
+            if (target) capByObject.set(target, node.address);
+          }
+        }
+        if (!page.pageInfo.hasNextPage) break;
+        cursor = page.pageInfo.endCursor;
+      }
+      log(`OwnerCap scan: ${capByObject.size} turret cap(s) held by your character.`);
+      for (const [objectId, capId] of capByObject) {
+        if (!records.has(objectId)) {
+          records.set(objectId, {
+            itemId: null,
+            typeId: null,
+            objectId,
+            ownerCapId: capId,
+            pilot: false,
+            live: null,
+            gone: false,
+            status: null,
+            extension: void 0,
+            energySourceId: null,
+            dynFields: null
+          });
+        } else {
+          records.get(objectId).ownerCapId = capId;
+        }
+      }
+      await Promise.all(
+        [...records.values()].map(async (r) => {
+          try {
+            const data = await gql(TURRET_Q, { a: r.objectId });
+            const obj = data.object;
+            if (!obj || !obj.asMoveObject) {
+              r.live = false;
+              r.gone = true;
+              return;
+            }
+            const j = obj.asMoveObject.contents.json;
+            r.live = true;
+            r.itemId = String(j.key?.item_id ?? r.itemId ?? "?");
+            r.typeId = Number(j.type_id ?? r.typeId ?? 0);
+            r.status = turretStatus(j);
+            r.extension = j.extension ?? null;
+            r.energySourceId = optionId(j.energy_source_id);
+            r.dynFields = (obj.dynamicFields?.nodes ?? []).length;
+          } catch (e) {
+            r.live = false;
+            log(`Turret ${r.itemId ?? r.objectId} live read failed: ${errText(e)}`);
+          }
+        })
+      );
+      const found = [...records.values()].filter((r) => r.live).length;
+      const armed = [...records.values()].filter((r) => isOurs(r.extension)).length;
+      log(`Fleet read complete: ${found} turret(s) on-chain, ${armed} carrying the extension.`);
+    } catch (e) {
+      log(`Fleet chain read FAILED: ${errText(e)} \u2014 cards show the 2026-10-22 census seed, marked as not live. Signing still works (the wallet resolves objects itself).`);
+      for (const r of records.values()) if (r.live === null) r.live = false;
+    }
+    fleet = [...records.values()].sort((a, b) => {
+      if (a.pilot !== b.pilot) return a.pilot ? -1 : 1;
+      return String(a.itemId).localeCompare(String(b.itemId));
+    });
+    renderFleet();
+  }
+  function extChip(r) {
+    if (r.live !== true) return '<span class="chip unknown">Not read</span>';
+    if (isOurs(r.extension)) return '<span class="chip ours">Extension \u2014 ours</span>';
+    if (r.extension == null) return '<span class="chip default">Default rules</span>';
+    return '<span class="chip other">Other extension</span>';
+  }
+  function extDetail(r) {
+    if (r.live !== true) return "\u2014";
+    if (isOurs(r.extension)) return `${EXT_PACKAGE.slice(0, 10)}\u2026 TurretAuth (current)`;
+    if (r.extension == null) return "none \u2014 game default targeting";
+    return esc(r.extension);
+  }
+  function renderFleet() {
+    const canSign = !!(wallet && account && isExpected(account.address));
+    fleetEl.innerHTML = fleet.map((r) => {
+      const lamp = r.gone ? "gone" : r.status === "ONLINE" ? "on" : "off";
+      const statusTxt = r.gone ? "NOT ON-CHAIN" : r.live ? r.status ?? "\u2014" : "SEED ONLY";
+      const authzDisabled = !canSign || r.gone || isOurs(r.extension);
+      const revokeDisabled = !canSign || r.gone || r.extension == null || r.live !== true;
+      return `<div class="card">
+				<div class="top">
+					<span class="item">${esc(r.itemId ?? "?")}</span>
+					<span>${r.pilot ? '<span class="pilotflag">Pilot</span>' : ""}<span class="cls">${esc(typeLabel(r.typeId ?? 0))}</span></span>
+				</div>
+				<div class="rows">
+					<div class="r"><span class="k">Status</span><span class="v"><span class="lamp ${lamp}"></span>${esc(statusTxt)}</span></div>
+					<div class="r"><span class="k">Extension</span><span class="v">${extChip(r)}</span></div>
+					<div class="r"><span class="k">Ext detail</span><span class="v">${extDetail(r)}</span></div>
+					<div class="r"><span class="k">Ammo</span><span class="v ammo">NOT ON-CHAIN</span></div>
+					<div class="r"><span class="k">Energy src</span><span class="v">${esc(short(r.energySourceId))}</span></div>
+					<div class="r"><span class="k">Object</span><span class="v">${esc(short(r.objectId))}</span></div>
+					<div class="r"><span class="k">OwnerCap</span><span class="v">${esc(short(r.ownerCapId))}</span></div>
+				</div>
+				<div class="btns">
+					<button data-act="authorize" data-obj="${esc(r.objectId)}" ${authzDisabled ? "disabled" : ""}>Authorize</button>
+					<button data-act="revoke" data-obj="${esc(r.objectId)}" ${revokeDisabled ? "disabled" : ""}>Revoke</button>
+				</div>
+			</div>`;
+    }).join("");
+    const found = fleet.filter((r) => r.live).length;
+    const armed = fleet.filter((r) => isOurs(r.extension)).length;
+    fleetSubEl.textContent = `${found} turret(s) on-chain \xB7 ${armed} extension-armed \xB7 read live from chain`;
+    fleetEl.querySelectorAll("button[data-act]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const r = fleet.find((x) => x.objectId === b.dataset.obj);
+        if (r) openAction(b.dataset.act, r);
+      });
+    });
+  }
+  function openAction(kind, r) {
+    if (!wallet || !account || !isExpected(account.address)) {
+      setStatus("Connect with your character wallet before signing anything.");
+      log(`Sign attempt (${kind}, turret ${r.itemId}) refused: wallet not connected with the expected account.`);
+      return;
+    }
+    pendingAction = { kind, turret: r };
+    const isAuth = kind === "authorize";
+    actionTitle.textContent = isAuth ? `Authorize extension \u2014 turret ${r.itemId}` : `Revoke extension \u2014 turret ${r.itemId}`;
+    const steps = isAuth ? `<ol>
+			<li><strong>Borrow</strong> the OwnerCap for turret <code>${esc(r.itemId)}</code> (object <code>${esc(r.objectId)}</code>) out of your character object.</li>
+			<li><strong>Authorize</strong> the turret extension package <code>${esc(EXT_PACKAGE)}</code> (type <code>\u2026::turret::TurretAuth</code>) on that one turret \u2014 the rules in the panel above: never you, never AWAR, never WOLF; NPCs at base weight; everyone else on presence.</li>
+			<li><strong>Return</strong> the OwnerCap to your character.</li>
+		</ol>` : `<ol>
+			<li><strong>Borrow</strong> the OwnerCap for turret <code>${esc(r.itemId)}</code> (object <code>${esc(r.objectId)}</code>) out of your character object.</li>
+			<li><strong>Revoke</strong> the extension authorization on that one turret (<code>revoke_extension_authorization</code>). The turret returns to the game's <strong>default</strong> targeting behaviour.</li>
+			<li><strong>Return</strong> the OwnerCap to your character.</li>
+		</ol>`;
+    actionSummary.innerHTML = `<p><strong>What your wallet is about to sign \u2014 exactly one transaction, three steps:</strong></p>${steps}<p>Nothing else is in the transaction. It does not move SUI or items, does not touch any other turret, and does <strong>not</strong> freeze the configuration. Gas is paid from the wallet's own SUI.</p>`;
+    resultEl.textContent = "";
+    signBtn.textContent = isAuth ? "Sign \u2014 authorize" : "Sign \u2014 revoke";
+    signBtn.disabled = false;
+    actionPanel.classList.add("open");
+    actionPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    log(`Action staged: ${kind} on turret ${r.itemId} (${r.objectId}). Waiting for Sign click.`);
+  }
+  function closeAction() {
+    pendingAction = null;
+    actionPanel.classList.remove("open");
+  }
+  async function signAction() {
+    if (!pendingAction || signPending) return;
+    const { kind, turret: r } = pendingAction;
+    if (!wallet || !account || !isExpected(account.address)) {
+      setStatus("Refusing to sign: connected account is not the expected wallet.");
+      log("Sign clicked but the connected account is not the expected wallet \u2014 refused.");
+      return;
+    }
+    signPending = true;
+    signBtn.disabled = true;
+    setStatus("Building the transaction and asking the wallet to sign\u2026");
+    log(`Sign clicked: ${kind} on turret ${r.itemId} for account ${account.address}.`);
+    resultEl.textContent = "";
+    try {
+      const tx = kind === "authorize" ? buildAuthorizeTransaction(account.address, { objectId: r.objectId, ownerCapId: r.ownerCapId }) : buildRevokeTransaction(account.address, { objectId: r.objectId, ownerCapId: r.ownerCapId });
+      const feature = wallet.features["sui:signAndExecuteTransaction"];
+      const output = await feature.signAndExecuteTransaction({
+        transaction: tx,
+        account,
+        chain: CHAIN
+      });
+      const digest = output && output.digest ? output.digest : "(no digest returned)";
+      resultEl.textContent = `SUCCESS \u2014 transaction digest: ${digest}
+Full wallet output:
+${JSON.stringify(output, null, 2)}`;
+      log(`SIGNED \u2014 ${kind} on turret ${r.itemId} SUCCEEDED \u2014 transaction digest: ${digest}`);
+      setStatus(
+        kind === "authorize" ? `Done. Extension authorized on turret ${r.itemId}. Digest: ${digest}` : `Done. Extension revoked on turret ${r.itemId} \u2014 default behaviour restored. Digest: ${digest}`
+      );
+      closeAction();
+      log("Refreshing fleet from chain in 3s (the index may lag the wallet by a few seconds)\u2026");
+      setTimeout(() => loadFleet().then(() => renderFleet()), 3e3);
+    } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      resultEl.textContent = `WALLET ERROR (verbatim):
+${msg}
+
+${JSON.stringify(e, Object.getOwnPropertyNames(e ?? {}), 2)}`;
+      log(`${kind} wallet error verbatim: ${errText(e)} (full object in the result box above the log).`);
+      setStatus("The wallet reported an error \u2014 see below, copied verbatim.");
+    } finally {
+      signPending = false;
+      signBtn.disabled = false;
+      renderFleet();
+    }
+  }
+  var KM_Q = `
+query($t: String!, $n: Int!, $c: String) {
+  objects(filter: {type: $t}, first: $n, after: $c) {
+    pageInfo { hasNextPage endCursor }
+    nodes { address asMoveObject { contents { json } } }
+  }
+}`;
+  var TALLY_KEY = "turretCockpitTallyV1";
+  var tally = null;
+  var tallyScanning = false;
+  function blankTally() {
+    return { cursor: null, scanned: 0, kills: 0, losses: 0, bySystem: {}, complete: false, asOf: null };
+  }
+  function loadTallyCache() {
+    try {
+      const raw = localStorage.getItem(TALLY_KEY);
+      if (raw) return { ...blankTally(), ...JSON.parse(raw) };
+    } catch {
+    }
+    return blankTally();
+  }
+  function saveTallyCache() {
+    try {
+      localStorage.setItem(TALLY_KEY, JSON.stringify(tally));
+    } catch {
+    }
+  }
+  function renderTally(note) {
+    $("tallyTotal").textContent = tally.kills;
+    $("tallyLosses").textContent = tally.losses;
+    const rows = Object.entries(tally.bySystem).map(([sys, v]) => ({ sys: Number(sys), ...v })).sort((a, b) => a.sys === HOME_SYSTEM_ID ? -1 : b.sys === HOME_SYSTEM_ID ? 1 : b.total - a.total);
+    if (!rows.some((r) => r.sys === HOME_SYSTEM_ID)) {
+      rows.unshift({ sys: HOME_SYSTEM_ID, total: 0, SHIP: 0, STRUCTURE: 0 });
+    }
+    $("tallyTable").querySelector("tbody").innerHTML = rows.map(
+      (r) => `<tr class="${r.sys === HOME_SYSTEM_ID ? "home" : ""}">
+				<td>${r.sys === HOME_SYSTEM_ID ? `${HOME_SYSTEM_NAME} \u2014 REEF (${r.sys})` : `SYSTEM ${r.sys}`}</td>
+				<td>${r.total}</td><td>${r.SHIP ?? 0}</td><td>${r.STRUCTURE ?? 0}</td></tr>`
+    ).join("");
+    $("tallyProgress").textContent = note ?? (tally.complete ? `Census complete \u2014 ${tally.scanned} reported killmails read.` : `Scanning\u2026 ${tally.scanned} killmails read so far.`);
+    $("tallyBar").style.width = tally.complete ? "100%" : `${Math.min(97, Math.round(tally.scanned / 4e3 * 100))}%`;
+    $("tallyAsOf").textContent = tally.asOf ? `Tally as of ${new Date(tally.asOf).toLocaleString()} \u2014 stored in this browser, resumed on open.` : "";
+  }
+  async function scanTally(fromZero) {
+    if (tallyScanning) return;
+    if (fromZero) {
+      tally = blankTally();
+      saveTallyCache();
+      log("Kill tally: rescan from zero requested.");
+    }
+    if (tally.complete && !fromZero) {
+      renderTally();
+      return;
+    }
+    tallyScanning = true;
+    log(`Kill tally: census ${tally.scanned ? `resuming at ${tally.scanned} scanned` : "starting"} (killmail objects, 50/page)\u2026`);
+    try {
+      for (; ; ) {
+        const data = await gql(KM_Q, { t: KILLMAIL_TYPE, n: 50, c: tally.cursor });
+        const page = data.objects;
+        for (const node of page.nodes) {
+          const j = node.asMoveObject?.contents?.json;
+          if (!j) continue;
+          tally.scanned++;
+          const killer = Number(j.killer_id?.item_id);
+          const victim = Number(j.victim_id?.item_id);
+          if (victim === CHARACTER_ID) tally.losses++;
+          if (killer === CHARACTER_ID) {
+            tally.kills++;
+            const sys = Number(j.solar_system_id?.item_id);
+            const loss = (j.loss_type?.["@variant"] ?? "OTHER").toUpperCase();
+            const row = tally.bySystem[sys] ??= { total: 0, SHIP: 0, STRUCTURE: 0 };
+            row.total++;
+            if (loss === "SHIP" || loss === "STRUCTURE") row[loss]++;
+          }
+        }
+        tally.cursor = page.pageInfo.endCursor;
+        tally.complete = !page.pageInfo.hasNextPage;
+        if (tally.complete) tally.asOf = Date.now();
+        saveTallyCache();
+        renderTally();
+        if (tally.complete) break;
+      }
+      log(`Kill tally census complete: ${tally.scanned} killmails read \u2014 ${tally.kills} reported kill(s) credited to Cascade, ${tally.losses} reported loss(es).`);
+    } catch (e) {
+      log(`Kill tally census PAUSED by an error: ${errText(e)} \u2014 partial counts shown; reopen the panel or rescan to continue.`);
+      renderTally(`Scan paused \u2014 ${tally.scanned} killmails read. Error in the session log.`);
+      tally.cursor = null;
+      tally.complete = false;
+      saveTallyCache();
+    } finally {
+      tallyScanning = false;
+    }
   }
   function suiWallets() {
     return getWallets().get().filter((w) => "sui:signAndExecuteTransaction" in (w.features ?? {}));
@@ -6536,18 +7151,18 @@
     if (!account) {
       accountEl.textContent = "(none)";
       status = `The wallet reports no authorized account (via ${source}). If an approval is still open inside EVE Vault, approve there \u2014 this page is listening and will update itself. Otherwise click Connect again.`;
-      log(`Accounts adopted via ${source}: NONE \u2014 Authorize stays disabled.`);
+      log(`Accounts adopted via ${source}: NONE \u2014 sign buttons stay disabled.`);
     } else {
       accountEl.textContent = account.address;
       if (isExpected(account.address)) {
-        status = "Connected with the correct account. The Authorize button is enabled.";
+        status = "Connected with the correct account. Sign buttons are enabled on each turret card.";
         log(
-          `Accounts adopted via ${source}: ${account.address} \u2014 matches John's character wallet. Authorize enabled.`
+          `Accounts adopted via ${source}: ${account.address} \u2014 matches your character wallet. Signing enabled.`
         );
       } else {
-        status = `Connected account is ${account.address}, which is NOT John's character wallet (${EXPECTED_SIGNER}). This page will not sign with any other account. Switch the account in EVE Vault and reconnect.`;
+        status = `Connected account is ${account.address}, which is NOT your character wallet (${EXPECTED_SIGNER}). This page will not sign with any other account. Switch the account in EVE Vault and reconnect.`;
         log(
-          `Accounts adopted via ${source}: ${account.address} \u2014 NOT the expected wallet. Authorize stays disabled.`
+          `Accounts adopted via ${source}: ${account.address} \u2014 NOT the expected wallet. Signing stays disabled.`
         );
       }
     }
@@ -6613,7 +7228,7 @@
     } else if (!account) {
       setStatus(`Wallet found: "${wallet.name}". Click Connect.`);
     }
-    authBtn.disabled = !(wallet && account && isExpected(account.address));
+    renderFleet();
   }
   var WALLET_STANDARD_USER_REJECTION = 4001e3;
   function isUserRejection(e) {
@@ -6699,47 +7314,17 @@
       log("Connect flow finished (button re-enabled).");
     }
   }
-  async function authorize() {
-    if (!wallet || !account) return;
-    if (!isExpected(account.address)) {
-      setStatus("Refusing to sign: connected account is not the expected wallet.");
-      log("Authorize clicked but the connected account is not the expected wallet \u2014 refused.");
-      return;
-    }
-    authBtn.disabled = true;
-    setStatus("Building the transaction and asking the wallet to sign\u2026");
-    log(`Authorize clicked for account ${account.address}. Building the transaction and asking "${wallet.name}" to sign\u2026`);
-    resultEl.textContent = "";
-    try {
-      const tx = buildAuthorizeTransaction(account.address);
-      const feature = wallet.features["sui:signAndExecuteTransaction"];
-      const output = await feature.signAndExecuteTransaction({
-        transaction: tx,
-        account,
-        chain: CHAIN
-      });
-      const digest = output && output.digest ? output.digest : "(no digest returned)";
-      resultEl.textContent = `SUCCESS \u2014 transaction digest: ${digest}
-Full wallet output:
-${JSON.stringify(output, null, 2)}`;
-      log(`Authorize SUCCEEDED \u2014 transaction digest: ${digest}`);
-      setStatus(
-        `Done. Extension authorized for pilot turret (item ${TURRET_ITEM_ID}). Tell Wilson the digest above.`
-      );
-    } catch (e) {
-      const msg = e && e.message ? e.message : String(e);
-      resultEl.textContent = `WALLET ERROR (verbatim):
-${msg}
-
-${JSON.stringify(e, Object.getOwnPropertyNames(e ?? {}), 2)}`;
-      log(`Authorize wallet error verbatim: ${errText(e)} (full object in the result box above the log).`);
-      setStatus("The wallet reported an error \u2014 see below, copied verbatim.");
-    } finally {
-      authBtn.disabled = !(wallet && account && isExpected(account.address));
-    }
-  }
   connectBtn.addEventListener("click", connect);
-  authBtn.addEventListener("click", authorize);
+  signBtn.addEventListener("click", signAction);
+  cancelBtn.addEventListener("click", () => {
+    log("Action cancelled at the confirm panel \u2014 nothing was signed.");
+    closeAction();
+  });
+  $("refreshFleet").addEventListener("click", () => {
+    log("Fleet refresh clicked.");
+    loadFleet();
+  });
+  $("rescanTally").addEventListener("click", () => scanTally(true));
   getWallets().on("register", (w) => {
     log(`Wallet registered with the page: "${w.name}".`);
     refresh();
@@ -6750,12 +7335,17 @@ ${JSON.stringify(e, Object.getOwnPropertyNames(e ?? {}), 2)}`;
     if (wallet === w) wallet = null;
     refresh();
   });
-  log("Page loaded. Session log started \u2014 every Connect click, wallet call, event, and error will appear here with a timestamp.");
+  log("Turret Cockpit loaded. Session log started \u2014 every Connect click, wallet call, chain read, event, and error will appear here with a timestamp.");
+  log(`Extension package: ${EXT_PACKAGE} (auth type ${AUTH_TYPE}). World package: ${WORLD_PACKAGE}.`);
   refresh();
   var initial = getWallets().get();
   log(
     `Initial discovery: ${initial.length} wallet(s) via Wallet Standard${initial.length ? `: ${initial.map((w) => `"${w.name}"`).join(", ")}` : ""}.`
   );
+  tally = loadTallyCache();
+  renderTally();
+  loadFleet();
+  scanTally(false);
 })();
 </script>
 </body>
